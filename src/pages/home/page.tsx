@@ -1,4 +1,4 @@
-import AdminLayout from "../../components/feature/AdminLayout";
+import AdminLayout from "../../components/feature/adminLayout";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { DashboardStatsDto, getDashboardStats } from "../../api/dashboardApi";

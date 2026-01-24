@@ -79,5 +79,12 @@ export default defineConfig({
   server: {
     port: 3000,
     host: "0.0.0.0",
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080", // 백엔드 서버 주소
+        changeOrigin: true, // 호스트 헤더를 target URL로 변경 (CORS 문제 방지)
+        // rewrite: (path) => path.replace(/^\/api/, ''), // (선택사항) 백엔드가 /api로 시작하지 않는다면 이 줄 주석 해제
+      },
+    },
   },
 });

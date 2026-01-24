@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import {
   getDashboardStatus,
   getSchedules,
-  getHistory,
   sendUnsentBills,
   createSchedule,
   updateSchedule,
@@ -17,22 +16,12 @@ export interface NotificationStatDto {
   publishCount: number;
   sendCount: number;
 }
-
 export interface Schedule {
-  id: string;
+  id: string; // 혹은 number (백엔드 맞춰서)
   month: string;
   scheduledDate: string;
   status: string;
   targetCount: number;
-}
-
-export interface HistoryRecord {
-  date: string;
-  total: number;
-  emailSuccess: number;
-  emailFail: number;
-  smsSuccess: number;
-  smsFail: number;
 }
 
 export default function Sending() {
@@ -55,9 +44,6 @@ export default function Sending() {
   const [sendingTargets, setSendingTargets] = useState<NotificationStatDto[]>(
     [],
   );
-  const [historyData, setHistoryData] = useState<{
-    [key: string]: HistoryRecord[];
-  }>({});
 
   // 4. 데이터 조회 함수 (API 함수 사용)
   const fetchDashboardData = async () => {
@@ -81,22 +67,6 @@ export default function Sending() {
     fetchDashboardData();
   }, []);
 
-  // 6. 이력 조회 (상세 클릭 시)
-  useEffect(() => {
-    if (selectedRow) {
-      const fetchHistoryData = async () => {
-        try {
-          // fetch 대신 getHistory 함수 사용
-          const data = await getHistory(selectedRow);
-          setHistoryData((prev) => ({ ...prev, [selectedRow]: data }));
-        } catch (error) {
-          console.error("이력 조회 실패:", error);
-        }
-      };
-      fetchHistoryData();
-    }
-  }, [selectedRow]);
-
   // 7. 미발송 발송 처리
   const handleUnsentSend = async () => {
     try {
@@ -112,14 +82,14 @@ export default function Sending() {
 
   // 8. 예약 발송 등록/수정
   const handleScheduleSend = async () => {
-    const scheduleDate = `${scheduledYear}-${scheduledMonth}-${scheduledDay} ${scheduledHour}:${scheduledMinute}`;
+    const scheduledDate = `${scheduledYear}-${scheduledMonth}-${scheduledDay} ${scheduledHour}:${scheduledMinute}`;
     const month = `${scheduledYear}-${scheduledMonth}`;
 
     try {
       if (editingScheduleId) {
         // 수정 (PUT)
         await updateSchedule(editingScheduleId, { scheduledDate, month });
-        alert(`예약이 ${scheduleDate}로 수정되었습니다.`);
+        alert(`예약이 ${scheduledDate}로 수정되었습니다.`);
       } else {
         // 신규 (POST)
         await createSchedule({
@@ -127,7 +97,7 @@ export default function Sending() {
           month,
           targetCount: 1000000,
         });
-        alert(`${scheduleDate}에 발송이 예약되었습니다.`);
+        alert(`${scheduledDate}에 발송이 예약되었습니다.`);
       }
 
       setShowScheduleModal(false);
@@ -135,7 +105,7 @@ export default function Sending() {
       fetchDashboardData(); // 목록 새로고침
     } catch (error) {
       console.error(error);
-      alert("서버 통신 오류");
+      alert("발송 예정 시간은 미래여야 합니다.");
     }
   };
 
@@ -147,7 +117,7 @@ export default function Sending() {
       try {
         await deleteSchedule(id); // API 호출
         alert("예약이 취소되었습니다.");
-        fetchDashboardData(); // 목록 새로고침
+        await fetchDashboardData(); // 목록 새로고침
       } catch (error) {
         console.error(error);
         alert("취소 실패");
@@ -181,7 +151,20 @@ export default function Sending() {
     setEditingScheduleId(null);
     setShowScheduleModal(true);
   };
-
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "scheduled":
+        return <span className="text-blue-600 font-bold">예약됨</span>;
+      case "done":
+        return <span className="text-green-600 font-bold">발송 완료</span>;
+      case "failed":
+        return <span className="text-red-600 font-bold">실패됨</span>; // 🔴 여기!
+      case "cancelled":
+        return <span className="text-gray-400">취소됨</span>;
+      default:
+        return <span>{status}</span>;
+    }
+  };
   return (
     <AdminLayout>
       <div className="p-8 bg-gray-50 min-h-screen">
@@ -277,89 +260,6 @@ export default function Sending() {
           </div>
         </div>
 
-        {/* Sending History Detail */}
-        {selectedRow && historyData[selectedRow] && (
-          <div className="bg-white rounded-lg border border-gray-200 mb-8">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <i className="ri-file-list-line text-teal-600"></i>
-                {selectedRow} 발송 이력
-              </h2>
-              <button
-                onClick={() => setSelectedRow(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-              >
-                <i className="ri-close-line text-xl"></i>
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      발송 일시
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      총 발송
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      이메일 성공
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      이메일 실패
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      SMS 성공
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      SMS 실패
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {historyData[selectedRow].map((record, idx) => (
-                    <tr
-                      key={idx}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-900">
-                          {record.date}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-gray-900">
-                          {record.total.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-green-600">
-                          {record.emailSuccess.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-red-600">
-                          {record.emailFail.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-green-600">
-                          {record.smsSuccess.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-red-600">
-                          {record.smsFail.toLocaleString()}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
         {/* 예약된 발송 */}
         {scheduledSendings.length > 0 && (
           <div className="bg-white rounded-lg border border-gray-200 mb-8">
@@ -414,41 +314,45 @@ export default function Sending() {
                           ) : (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                               <i className="ri-time-line mr-1"></i>
-                              예약됨
+                              {getStatusBadge(schedule.status)}
                             </span>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleEditSchedule(schedule)}
-                              disabled={isCompleted}
-                              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
-                                isCompleted
-                                  ? "text-gray-400 bg-gray-100 cursor-not-allowed"
-                                  : "text-gray-700 hover:bg-gray-100 cursor-pointer"
-                              }`}
-                            >
-                              <i className="ri-edit-line mr-1"></i>
-                              수정
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleCancelSchedule(
-                                  schedule.id,
-                                  schedule.status,
-                                )
-                              }
-                              disabled={isCompleted}
-                              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
-                                isCompleted
-                                  ? "text-gray-400 bg-gray-100 cursor-not-allowed"
-                                  : "text-red-600 hover:bg-red-50 cursor-pointer"
-                              }`}
-                            >
-                              <i className="ri-close-circle-line mr-1"></i>
-                              취소
-                            </button>
+                            {schedule.status === "scheduled" && (
+                              <button
+                                onClick={() => handleEditSchedule(schedule)}
+                                disabled={isCompleted}
+                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                                  isCompleted
+                                    ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                                    : "text-gray-700 hover:bg-gray-100 cursor-pointer"
+                                }`}
+                              >
+                                <i className="ri-edit-line mr-1"></i>
+                                수정
+                              </button>
+                            )}
+                            {schedule.status === "scheduled" && (
+                              <button
+                                onClick={() =>
+                                  handleCancelSchedule(
+                                    schedule.id,
+                                    schedule.status,
+                                  )
+                                }
+                                disabled={isCompleted}
+                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                                  isCompleted
+                                    ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                                    : "text-red-600 hover:bg-red-50 cursor-pointer"
+                                }`}
+                              >
+                                <i className="ri-close-circle-line mr-1"></i>
+                                취소
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -608,7 +512,7 @@ export default function Sending() {
                       onChange={(e) => setScheduledMinute(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
-                      {["00", "15", "30", "45"].map((min) => (
+                      {["00"].map((min) => (
                         <option key={min} value={min}>
                           {min}
                         </option>

@@ -15,7 +15,7 @@ export interface DashboardStatsDto {
  * @param date "yyyy-MM" (옵션, 없으면 현재 월)
  */
 export const getDashboardStats = async (date?: string) => {
-  const response = await api.get<DashboardStatsDto>("/admin/dashboard/stats", {
+  const response = await api.get<DashboardStatsDto>("/dashboard/stats", {
     params: { date },
   });
   return response.data;

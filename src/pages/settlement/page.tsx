@@ -1,4 +1,4 @@
-import AdminLayout from "../../components/feature/AdminLayout";
+import AdminLayout from "../../components/feature/adminLayout";
 import { useEffect, useState } from "react";
 import {
   getSettlementStatus,

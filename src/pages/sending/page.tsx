@@ -1,4 +1,4 @@
-import AdminLayout from "../../components/feature/AdminLayout";
+import AdminLayout from "../../components/feature/adminLayout";
 import { useState, useEffect } from "react";
 // 1. 만들어둔 API 함수들을 가져옵니다. (axiosConfig 직접 사용 X)
 import {

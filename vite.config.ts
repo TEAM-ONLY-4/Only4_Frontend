@@ -81,8 +81,9 @@ export default defineConfig({
     host: "0.0.0.0",
     proxy: {
       "/api": {
-        target: "http://localhost:8080", // 백엔드 서버 주소
+        target: "https://www.only4.kro.kr", // 백엔드 서버 주소
         changeOrigin: true, // 호스트 헤더를 target URL로 변경 (CORS 문제 방지)
+        secure: false, // SSL 인증서 검증 무시 (배포 환경에 따라 필요할 수 있음)
         // rewrite: (path) => path.replace(/^\/api/, ''), // (선택사항) 백엔드가 /api로 시작하지 않는다면 이 줄 주석 해제
       },
     },

@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://only4.kro.kr/api/$1"
+      "destination": "https://www.only4.kro.kr/api/$1"
     },
     {
       "source": "/(.*)",
